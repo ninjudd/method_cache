@@ -1,0 +1,7 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/method_cache
+lib/method_cache.rb
+test/test_method_cache.rb
