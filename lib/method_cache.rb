@@ -1,5 +1,5 @@
 module MethodCache
-  VERSION = 0.5.0
+  VERSION = '0.5.0'
 
   def self.extended(mod)
     mod.send(:extend,  self::ClassMethods)
