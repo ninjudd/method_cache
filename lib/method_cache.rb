@@ -1,3 +1,6 @@
+#require 'memcache'
+require File.dirname(__FILE__) + '/../../memcache/lib/memcache'
+
 module MethodCache
   VERSION = '0.5.0'
 
@@ -9,14 +12,6 @@ module MethodCache
   def self.included(mod)
     mod.send(:extend,  self::ClassMethods)
     mod.send(:include, self::InstanceMethods)
-  end
-
-  def self.cache(name = nil)
-    if name
-      cache[name.to_sym]
-    else
-      @cache_pool ||= { :default => MemCacheMock.new }
-    end
   end
 
   module ClassMethods
@@ -75,12 +70,13 @@ module MethodCache
     def method_with_caching(method_name, opts)     
       lambda do |*args|
         key   = cached_key(method_name, *args)
-        cache = MethodCache.cache(opts[:cache])
+        cache = MemCache.pool[opts[:cache]]
         value = cache.get(key)
         if value.nil?
-          value = self.send("#{method_name}_without_caching", *args)
+          value  = self.send("#{method_name}_without_caching", *args)
           expiry = opts[:expiry].kind_of?(Proc) ? opts[:expiry].call(value) : opts[:expiry]
-          cache.set(key, value.nil? ? NULL : value, expiry)
+          value  = value.nil? ? NULL : value
+          cache.set(key, value, expiry)
         end
         
         value = nil if value == NULL
@@ -119,7 +115,7 @@ module MethodCache
 
       raise "#{method_name} not cached; cannot invalidate" unless opts
       key = cached_key(method_name, *args)
-      MethodCache.cache(opts[:cache]).delete(key)
+      MemCache.pool[opts[:cache]].delete(key)
       nil
     end
 
@@ -132,7 +128,7 @@ module MethodCache
         case arg
         when Class
           arg.respond_to?(:version) ? "#{arg}_#{arg.version}" : arg.to_s
-        when ActiveRecord::Base
+        when defined?(ActiveRecord::Base) && ActiveRecord::Base
           arg.id.to_s
         when Symbol, String, Numeric
           arg.to_s
