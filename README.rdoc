@@ -37,10 +37,11 @@ reduce your database load.
 
 == Install:
 
-  sudo gem install memcache
   sudo gem install cache_version
   sudo gem install method_cache
 
+Requires the extended version of the memcache client (http://github.com/ninjudd/memcache).
+
 == License:
 
-Copyright (c) 2008 Jusin Balthrop, Geni.com; Published under The MIT License, see License.txt
+Copyright (c) 2009 Jusin Balthrop, Geni.com; Published under The MIT License, see License.txt
