@@ -1,11 +1,7 @@
 = MethodCache
 
 MethodCache lets you easily cache the results of any instance method or class method in
-Ruby. 
-
-is a simple yet powerful extension to ActiveRecord that caches indexes
-and ActiveRecord models using MemCache. If you use it correctly, it will drastically
-reduce your database load.
+Ruby.
 
 == Usage:
 
