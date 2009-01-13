@@ -5,23 +5,29 @@ module MethodCache
   VERSION = '0.5.1'
 
   def cache_method(method_name, opts = {})
-    if cached_methods.empty?
-      include(InvalidationMethods)
-      extend(MethodAdded)
+    if self.class == Class
+      if cached_methods.empty?
+        include(InvalidationMethods)
+        extend(MethodAdded)
+      end
+      
+      method_name = method_name.to_sym
+      cached_methods[method_name] = nil
+      begin
+        opts[:cache]  ||= :default
+        opts[:method] ||= method_with_caching(method_name, opts)
+        
+        alias_method "#{method_name}_without_caching", method_name
+        define_method method_name, &opts[:method]
+      rescue NameError => e
+        # The method has not been defined yet. We will alias it in method_added.
+      end
+      cached_methods[method_name] = opts
+    elsif self.class == Module
+      # We will alias all methods when the module is mixed-in.
+      extend(ModuleAdded) if cached_module_methods.empty?
+      cached_module_methods[method_name.to_sym] = opts
     end
-
-    method_name = method_name.to_sym
-    cached_methods[method_name] = nil
-    begin
-      opts[:cache]  ||= :default
-      opts[:method] ||= method_with_caching(method_name, opts)
-
-      alias_method "#{method_name}_without_caching", method_name
-      define_method method_name, &opts[:method]
-    rescue NameError => e
-      # The method has not been defined yet. We will alias it in method_added.
-    end
-    cached_methods[method_name] = opts
   end
 
   def cache_class_method(method_name, opts = {})
@@ -46,14 +52,7 @@ module MethodCache
     cached_class_methods[method_name] = opts
   end
 
-  def cache_module_method(method_name, opts = {})
-    extend(ModuleAdded) if cached_module_methods.empty?
-
-    # We will alias all methods when the module is mixed-in.
-    cached_module_methods[method_name.to_sym] = opts
-  end
-  
-  private
+private
   
   NULL = 'NULL'
   def method_with_caching(method_name, opts)     
