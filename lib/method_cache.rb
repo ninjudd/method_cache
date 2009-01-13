@@ -5,31 +5,37 @@ module MethodCache
   VERSION = '0.5.0'
 
   def self.extended(mod)
-    mod.send(:extend,  self::ClassMethods)
-    mod.send(:include, self::InstanceMethods)
+    mod.send(:extend,  ClassMethods)
+    mod.send(:include, InstanceMethods)
   end
 
   def self.included(mod)
-    mod.send(:extend,  self::ClassMethods)
-    mod.send(:include, self::InstanceMethods)
+    mod.send(:extend,  ClassMethods)
+    mod.send(:include, InstanceMethods)
   end
 
-  module ClassMethods
+  module MethodAdded
     def method_added(method_name)
       if opts = cached_methods(method_name)
         cache_method(method_name, opts)
       end
       super
     end
+  end
 
+  module SingletonMethodAdded
     def singleton_method_added(method_name)
       if opts = cached_class_methods(method_name)
         cache_class_method(method_name, opts)
       end
       super      
     end
-    
+  end
+
+  module ClassMethods    
     def cache_method(method_name, opts = {})
+      self.extend(MethodAdded) if cached_methods.empty?
+
       method_name = method_name.to_sym
       cached_methods[method_name] = nil
       begin
@@ -46,7 +52,8 @@ module MethodCache
 
     def cache_class_method(method_name, opts = {})
       # We need invalidate_cached_method.
-      self.extend(InstanceMethods) if cached_class_methods.empty?
+      self.extend(InstanceMethods)      if cached_class_methods.empty?
+      self.extend(SingletonMethodAdded) if cached_class_methods.empty?
 
       method_name = method_name.to_sym
       cached_class_methods[method_name] = nil
@@ -59,7 +66,7 @@ module MethodCache
           define_method method_name, &opts[:method]
         end
       rescue NameError => e
-        # The method has not been defined yet. We will cache it in method_added.
+        # The method has not been defined yet. We will cache it in singleton_method_added.
       end
       cached_class_methods[method_name] = opts
     end
@@ -129,11 +136,12 @@ module MethodCache
         when Class
           arg.respond_to?(:version) ? "#{arg}_#{arg.version}" : arg.to_s
         when defined?(ActiveRecord::Base) && ActiveRecord::Base
-          arg.id.to_s
+          "#{arg.class}-#{arg.id}"
         when Symbol, String, Numeric
           arg.to_s
         else
-          "#{arg.class}-#{arg.hash}"
+          hash = arg.respond_to?(:string_hash) ? arg.string_hash : arg.hash
+          "#{arg.class}-#{hash}"
         end
       end.join(',')
       "m:#{arg_string}"
