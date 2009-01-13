@@ -69,7 +69,7 @@ module MethodCache
     NULL = 'NULL'
     def method_with_caching(method_name, opts)     
       lambda do |*args|
-        key   = cached_key(method_name, *args)
+        key   = method_cache_key(method_name, *args)
         cache = MemCache.pool[opts[:cache]]
         value = cache.get(key)
         if value.nil?
@@ -114,14 +114,14 @@ module MethodCache
       end
 
       raise "#{method_name} not cached; cannot invalidate" unless opts
-      key = cached_key(method_name, *args)
+      key = method_cache_key(method_name, *args)
       MemCache.pool[opts[:cache]].delete(key)
       nil
     end
 
   private
 
-    def cached_key(*args)
+    def method_cache_key(*args)
       args.unshift(self)
 
       arg_string = args.collect do |arg|
