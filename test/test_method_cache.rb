@@ -17,6 +17,20 @@ class Foo
   end
 end
 
+module Bar
+  extend MethodCache
+  
+  cache_method :foo
+  def foo(i)
+    @i ||= 0
+    @i  += i
+  end
+end
+
+class Baz
+  include Bar
+end
+
 class TestMethodCache < Test::Unit::TestCase
   def test_cache_method
     a = Foo.new
@@ -33,6 +47,15 @@ class TestMethodCache < Test::Unit::TestCase
     b = a.bar
     assert b == a.bar
     assert b == a.bar
+  end
+
+  def test_mixins
+    a = Baz.new
+    
+    assert_equal 1, a.foo(1)
+    assert_equal 1, a.foo(1)
+    assert_equal 3, a.foo(2)
+    assert_equal 3, a.foo(2)
   end
 
   def test_invalidate_cached_method
