@@ -14,15 +14,16 @@ module MethodCache
       method_name = method_name.to_sym
       cached_methods[method_name] = nil
       begin
-        opts[:cache]  ||= :default
-        opts[:method] ||= method_with_caching(method_name, opts)
+        update_opts(opts, method_name)
         
+        # Replace instance method.
         alias_method "#{method_name}_without_caching", method_name
         define_method method_name, &opts[:method]
       rescue NameError => e
         # The method has not been defined yet. We will alias it in method_added.
       end
       cached_methods[method_name] = opts
+
     elsif self.class == Module
       # We will alias all methods when the module is mixed-in.
       extend(ModuleAdded) if cached_module_methods.empty?
@@ -39,9 +40,9 @@ module MethodCache
     method_name = method_name.to_sym
     cached_class_methods[method_name] = nil
     begin
-      opts[:cache]  ||= :default
-      opts[:method] ||= method_with_caching(method_name, opts)
+      update_opts(opts, method_name)
 
+      # Replace class method.
       (class << self; self; end).module_eval do
         alias_method "#{method_name}_without_caching", method_name
         define_method method_name, &opts[:method]
@@ -52,19 +53,29 @@ module MethodCache
     cached_class_methods[method_name] = opts
   end
 
+  def self.default_cache
+    @default_cache ||= {}
+  end
+
 private
   
   NULL = 'NULL'
   def method_with_caching(method_name, opts)     
     lambda do |*args|
       key   = method_cache_key(method_name, *args)
-      cache = MemCache.pool[opts[:cache]]
-      value = cache.get(key)
+      cache = opts[:cache]
+      value = cache[key]
+
       if value.nil?
         value  = self.send("#{method_name}_without_caching", *args)
-        expiry = opts[:expiry].kind_of?(Proc) ? opts[:expiry].call(value) : opts[:expiry]
-        value  = value.nil? ? NULL : value
-        cache.set(key, value, expiry)
+        if cache.kind_of?(Hash)
+          raise 'expiry not permitted when cache is a Hash' if opts[:expiry]
+          cache[key] = value
+        else
+          expiry = opts[:expiry].kind_of?(Proc) ? opts[:expiry].call(value) : opts[:expiry]
+          value  = value.nil? ? NULL : value
+          cache.set(key, value, expiry)
+        end
       end
       
       value = nil if value == NULL
@@ -74,6 +85,14 @@ private
         value
       end
     end
+  end
+
+  def update_opts(opts, method_name)
+    opts[:method_name] = method_name
+    opts[:method] ||= method_with_caching(method_name, opts)
+
+    opts[:cache] ||= MethodCache.default_cache
+    opts[:cache] = MemCache.pool[opts[:cache]] if not opts[:cache].kind_of?(Hash)
   end
 
   def cached_methods(method_name = nil)
@@ -104,13 +123,13 @@ private
     def invalidate_cached_method(method_name, *args)
       opts = cached_method_opts(method_name)
       key  = method_cache_key(method_name, *args)
-      MemCache.pool[opts[:cache]].delete(key)
+      opts[:cache].delete(key)
     end
 
     def method_value_cached?(method_name, *args)
       opts = cached_method_opts(method_name)
       key  = method_cache_key(method_name, *args)
-      not MemCache.pool[opts[:cache]].get(key).nil?
+      not opts[:cache][key].nil?
     end
 
   private
