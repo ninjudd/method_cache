@@ -63,19 +63,11 @@ private
   def method_with_caching(method_name, opts)     
     lambda do |*args|
       key   = method_cache_key(method_name, *args)
-      cache = opts[:cache]
-      value = cache[key]
+      value = opts[:cache][key]
 
       if value.nil?
-        value  = self.send("#{method_name}_without_caching", *args)
-        if cache.kind_of?(Hash)
-          raise 'expiry not permitted when cache is a Hash' if opts[:expiry]
-          cache[key] = value
-        else
-          expiry = opts[:expiry].kind_of?(Proc) ? opts[:expiry].call(value) : opts[:expiry]
-          value  = value.nil? ? NULL : value
-          cache.set(key, value, expiry)
-        end
+        value = self.send("#{method_name}_without_caching", *args)
+        write_value_to_cache(key, value, opts)
       end
       
       value = nil if value == NULL
@@ -131,8 +123,26 @@ private
       key  = method_cache_key(method_name, *args)
       not opts[:cache][key].nil?
     end
+    
+    def update_cached_method_value(method, *args)
+      opts  = cached_method_opts(method_name)
+      key   = method_cache_key(method_name, *args)
+      value = block_given? ? yield : self.send("#{opts[:method_name]}_without_caching", *args)
+      write_value_to_cache(key, value, opts)
+    end
 
   private
+
+    def write_value_to_cache(key, value, opts)
+      if opts[:cache].kind_of?(Hash)
+        raise 'expiry not permitted when cache is a Hash' if opts[:expiry]
+        opts[:cache][key] = value
+      else
+        expiry = opts[:expiry].kind_of?(Proc) ? opts[:expiry].call(value) : opts[:expiry]
+        value  = value.nil? ? NULL : value
+        opts[:cache].set(key, value, expiry)
+      end
+    end
 
     def cached_method_opts(method_name)
       if self.kind_of?(Class)
