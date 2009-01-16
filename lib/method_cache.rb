@@ -21,6 +21,7 @@ module MethodCache
         define_method method_name, &opts[:method]
       rescue NameError => e
         # The method has not been defined yet. We will alias it in method_added.
+        # pp e, e.backtrace
       end
       cached_methods[method_name] = opts
 
@@ -49,6 +50,7 @@ module MethodCache
       end
     rescue NameError => e
       # The method has not been defined yet. We will alias it in singleton_method_added.
+      # pp e, e.backtrace
     end
     cached_class_methods[method_name] = opts
   end
@@ -84,7 +86,7 @@ private
     opts[:method] ||= method_with_caching(method_name, opts)
 
     opts[:cache] ||= MethodCache.default_cache
-    opts[:cache] = MemCache.pool[opts[:cache]] if not opts[:cache].kind_of?(Hash)
+    opts[:cache] = MemCache.pool[opts[:cache]] if opts[:cache].kind_of?(Symbol)
   end
 
   def cached_methods(method_name = nil)
