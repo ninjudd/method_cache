@@ -124,10 +124,10 @@ private
       not opts[:cache][key].nil?
     end
     
-    def update_cached_method(method, *args)
+    def update_cached_method(method_name, *args)
       opts  = cached_method_opts(method_name)
       key   = method_cache_key(method_name, *args)
-      value = block_given? ? yield : self.send("#{opts[:method_name]}_without_caching", *args)
+      value = block_given? ? yield : self.send("#{method_name}_without_caching", *args)
       write_value_to_cache(key, value, opts)
       value
     end
