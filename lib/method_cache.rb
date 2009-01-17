@@ -163,17 +163,21 @@ private
       arg_string = args.collect do |arg|
         case arg
         when Class
-          arg.respond_to?(:version) ? "#{arg.name}_#{arg.version}" : arg.name
+          class_key(arg)
         when defined?(ActiveRecord::Base) && ActiveRecord::Base
-          "#{arg.class}-#{arg.id}"
+          "#{class_key(arg)}-#{arg.id}"
         when Symbol, String, Numeric
           arg.to_s
         else
           hash = arg.respond_to?(:string_hash) ? arg.string_hash : arg.hash
-          "#{arg.class}-#{hash}"
+          "#{class_key(arg)}-#{hash}"
         end
       end.join(',')
       "m:#{arg_string}"
+    end
+
+    def class_key(klass)
+      klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name
     end
   end
 
