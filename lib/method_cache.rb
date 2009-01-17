@@ -165,12 +165,12 @@ private
         when Class
           class_key(arg)
         when defined?(ActiveRecord::Base) && ActiveRecord::Base
-          "#{class_key(arg)}-#{arg.id}"
+          "#{class_key(arg.class)}-#{arg.id}"
         when Symbol, String, Numeric
           arg.to_s
         else
           hash = arg.respond_to?(:string_hash) ? arg.string_hash : arg.hash
-          "#{class_key(arg)}-#{hash}"
+          "#{class_key(arg.class)}-#{hash}"
         end
       end.join(',')
       "m:#{arg_string}"
