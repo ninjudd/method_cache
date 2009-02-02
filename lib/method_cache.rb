@@ -117,6 +117,11 @@ private
     def invalidate_cached_method(method_name, *args)
       opts = cached_method_opts(method_name)
       key  = method_cache_key(method_name, *args)
+      if block_given?
+        # Only invalidate if the block returns true.
+        value = opts[:cache][key]
+        return if value and not yield(value)
+      end
       opts[:cache].delete(key)
     end
 
@@ -201,12 +206,14 @@ private
 
   module ModuleAdded
     def extended(mod)
+      mod.extend(MethodCache)
       cached_module_methods.each do |method_name, opts|
         mod.cache_class_method(method_name, opts)
       end
     end
 
     def included(mod)
+      mod.extend(MethodCache)
       cached_module_methods.each do |method_name, opts|
         mod.cache_method(method_name, opts)
       end
