@@ -182,7 +182,7 @@ private
     end
 
     def class_key(klass)
-      klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name
+      klass.respond_to?(:version_key) ? klass.version_key : klass.name
     end
   end
 
