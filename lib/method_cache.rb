@@ -186,7 +186,7 @@ private
     end
 
     def class_key(klass)
-      key = klass.respond_to?(:version) ? "#{self.name}_#{self.version}" : klass.name
+      key = klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name
       if MethodCache.partition_environments and RAILS_ENV != 'production'
         key << "_#{RAILS_ENV}"
       end
