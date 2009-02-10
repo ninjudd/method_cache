@@ -59,6 +59,10 @@ module MethodCache
     @default_cache ||= {}
   end
 
+  class << self
+    attr_accessor :partition_environments
+  end
+
 private
   
   NULL = 'NULL'
@@ -182,7 +186,11 @@ private
     end
 
     def class_key(klass)
-      klass.respond_to?(:version_key) ? klass.version_key : klass.name
+      key = klass.respond_to?(:version) ? "#{self.name}_#{self.version}" : klass.name
+      if MethodCache.partition_environments and RAILS_ENV != 'production'
+        key << "_#{RAILS_ENV}"
+      end
+      key
     end
   end
 
