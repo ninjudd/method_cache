@@ -33,7 +33,8 @@ module MethodCache
     def value(target, *args)
       key   = cache_key(target, *args)
       value = cache[key]
-          
+      value = nil if value and validation and not validation.call(value)
+
       if value.nil?
         value = target.send(method_name_without_caching, *args)
         write_to_cache(key, value)
@@ -70,6 +71,10 @@ module MethodCache
 
     def expiry
       @opts[:expiry]
+    end
+
+    def validation
+      @opts[:validation]
     end
 
     def clone?
