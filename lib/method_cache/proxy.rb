@@ -113,11 +113,7 @@ module MethodCache
     end
 
     def class_key(klass)
-      key = klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name
-      if MethodCache.partition_environments and RAILS_ENV != 'production'
-        key << "_#{RAILS_ENV}"
-      end
-      key
+      klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name
     end
   end
 end

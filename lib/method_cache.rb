@@ -63,10 +63,6 @@ module MethodCache
     @default_cache ||= {}
   end
 
-  class << self
-    attr_accessor :partition_environments
-  end
-
 private
   
   def cached_instance_methods(method_name = nil)
