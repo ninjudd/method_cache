@@ -33,7 +33,7 @@ module MethodCache
     def value(target, *args)
       key   = cache_key(target, *args)
       value = cache[key]
-      value = nil if value and validation and not validation.call(value)
+      value = nil unless valid?(value)
 
       if value.nil?
         value = target.send(method_name_without_caching, *args)
@@ -69,12 +69,16 @@ module MethodCache
       @cache
     end
 
-    def expiry
-      @opts[:expiry]
+    def expiry(value = nil)
+      if value
+        @opts[:expiry].kind_of?(Proc) ? @opts[:expiry].call(value) : @opts[:expiry].to_i
+      else
+        @opts[:expiry]
+      end
     end
 
-    def validation
-      @opts[:validation]
+    def valid?(value)
+      value and @opts[:validation] and @opts[:validation].call(value)
     end
 
     def clone?
@@ -86,9 +90,8 @@ module MethodCache
         raise 'expiry not permitted when cache is a Hash' if expiry
         cache[key] = value
       else
-        expiry = expiry.kind_of?(Proc) ? expiry.call(value) : expiry
         value  = value.nil? ? NULL : value
-        cache.set(key, value, expiry)
+        cache.set(key, value, expiry(value))
       end
     end
 
