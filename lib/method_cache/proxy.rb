@@ -33,11 +33,11 @@ module MethodCache
     def value(target, *args)
       key   = cache_key(target, *args)
       value = cache[key]
-      value = nil unless valid?(value)
+      value = nil unless valid_load?(value)
 
       if value.nil?
         value = target.send(method_name_without_caching, *args)
-        write_to_cache(key, value)
+        write_to_cache(key, value) if valid_save?(value)
       end
           
       value = nil if value == NULL
@@ -77,8 +77,12 @@ module MethodCache
       end
     end
 
-    def valid?(value)
-      value and @opts[:validation] and @opts[:validation].call(value)
+    def valid_load?(value)
+      value and @opts[:load_validation] and @opts[:load_validation].call(value)
+    end
+
+    def valid_save?(value)
+      value and @opts[:save_validation] and @opts[:save_validation].call(value)
     end
 
     def clone?
