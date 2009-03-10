@@ -78,11 +78,13 @@ module MethodCache
     end
 
     def valid_load?(value)
-      value and @opts[:load_validation] and @opts[:load_validation].call(value)
+      return true unless @opts[:load_validation]
+      value and @opts[:load_validation].call(value)
     end
 
     def valid_save?(value)
-      value and @opts[:save_validation] and @opts[:save_validation].call(value)
+      return true unless @opts[:save_validation]
+      value and @opts[:save_validation].call(value)
     end
 
     def clone?
