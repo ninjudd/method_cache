@@ -91,27 +91,27 @@ private
 
   module InvalidationMethods
    def invalidate_cached_method(method_name, *args, &block)
-      cached_method(method_name).invalidate(self, *args, &block)
+      cached_method(method_name, self, args).invalidate(&block)
     end
 
     def method_value_cached?(method_name, *args)
-      cached_method(method_name).cached?(self, *args)
+      cached_method(method_name, self, args).cached?
     end
     
     def update_cached_method(method_name, *args, &block)
-      cached_method(method_name).update(self, *args, &block)
+      cached_method(method_name, self, *args).update(&block)
     end
 
   private
 
-    def cached_method(method_name)
+    def cached_method(method_name, target, args)
       if self.kind_of?(Class)
         proxy = cached_class_methods(method_name)
       else
         proxy = self.class.send(:cached_instance_methods, method_name)
       end
       raise "method '#{method_name}' not cached" unless proxy
-      proxy
+      proxy.bind(target, args)
     end
   end
 

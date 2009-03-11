@@ -1,15 +1,24 @@
 module MethodCache
   class Proxy
-    attr_reader :method_name
+    attr_reader :method_name, :args, :target
 
     def initialize(method_name, opts)
       @method_name = method_name
       @opts        = opts
     end
 
-    def invalidate(*args)
-      key = cache_key(*args)
+    def bind(target, args)
+      self.clone.bind!(target, args)
+    end
+    
+    def bind!(target, args)
+      @target = target
+      @args   = args
+      @key    = nil
+      self
+    end
 
+    def invalidate
       if block_given?
         # Only invalidate if the block returns true.
         value = cache[key]
@@ -18,26 +27,23 @@ module MethodCache
       cache.delete(key)
     end
 
-    def cached?(*args)
-      key = cache_key(*args)
+    def cached?
       not cache[key].nil?
     end
     
-    def update(*args)
-      key   = cache_key(*args)
+    def update
       value = block_given? ? yield(cache[key]) : args.first.send(:method_name_without_caching, *args)
       write_to_cache(key, value)
       value
     end
 
-    def value(target, *args)
-      key   = cache_key(target, *args)
+    def value
       value = cache[key]
-      value = nil unless valid_load?(value)
+      value = nil unless valid?(:load, value)
 
       if value.nil?
         value = target.send(method_name_without_caching, *args)
-        write_to_cache(key, value) if valid_save?(value)
+        write_to_cache(key, value) if valid?(:save, value)
       end
           
       value = nil if value == NULL
@@ -53,7 +59,7 @@ module MethodCache
       proxy = self # Need access to the proxy in the closure.
 
       lambda do |*args|
-        proxy.value(self, *args)
+        proxy.bind(self, args).value
       end
     end
 
@@ -69,56 +75,61 @@ module MethodCache
       @cache
     end
 
-    def expiry(value = nil)
-      if value
-        @opts[:expiry].kind_of?(Proc) ? @opts[:expiry].call(value) : @opts[:expiry].to_i
-      else
-        @opts[:expiry]
-      end
-    end
-
-    def valid_load?(value)
-      return true unless @opts[:load_validation]
-      value and @opts[:load_validation].call(value)
-    end
-
-    def valid_save?(value)
-      return true unless @opts[:save_validation]
-      value and @opts[:save_validation].call(value)
-    end
-
     def clone?
       !!@opts[:clone]
     end
 
+    def key
+      if @key.nil?
+        arg_string = ([method_name, target] + args).collect do |arg|
+          case arg
+          when Class
+            class_key(arg)
+          when defined?(ActiveRecord::Base) && ActiveRecord::Base
+            "#{class_key(arg.class)}-#{arg.id}"
+          when Symbol, String, Numeric
+            arg.to_s
+          else
+            hash = arg.respond_to?(:string_hash) ? arg.string_hash : arg.hash
+            "#{class_key(arg.class)}-#{hash}"
+          end
+        end.join(',')
+        @key = "m:#{arg_string}"
+      end
+      @key
+    end
+
+  private
+
+    def expiry(value)
+      @opts[:expiry].kind_of?(Proc) ? call_lambda(:expiry, value) : @opts[:expiry].to_i
+    end
+
+    def valid?(type, value)
+      name = "#{type}_validation".to_sym
+      return true unless @opts[name]
+      return unless value
+
+      call_lambda(name, value)
+    end
+
+    def call_lambda(name, value)
+      proc = @opts[name].bind(target)
+      if proc.arity == 1
+        proc.call(value)
+      else
+        proc.call(value, *args)
+      end
+    end
+
     def write_to_cache(key, value)
       if cache.kind_of?(Hash)
-        raise 'expiry not permitted when cache is a Hash' if expiry
+        raise 'expiry not permitted when cache is a Hash' if @opts[:expiry]
         cache[key] = value
       else
         value  = value.nil? ? NULL : value
         cache.set(key, value, expiry(value))
       end
-    end
-
-    def cache_key(target, *args)
-      args.unshift(method_name)
-      args.unshift(target)
-
-      arg_string = args.collect do |arg|
-        case arg
-        when Class
-          class_key(arg)
-        when defined?(ActiveRecord::Base) && ActiveRecord::Base
-          "#{class_key(arg.class)}-#{arg.id}"
-        when Symbol, String, Numeric
-          arg.to_s
-        else
-          hash = arg.respond_to?(:string_hash) ? arg.string_hash : arg.hash
-          "#{class_key(arg.class)}-#{hash}"
-        end
-      end.join(',')
-      "m:#{arg_string}"
     end
 
     def class_key(klass)
