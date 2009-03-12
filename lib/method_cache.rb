@@ -99,7 +99,7 @@ private
     end
     
     def update_cached_method(method_name, *args, &block)
-      cached_method(method_name, self, *args).update(&block)
+      cached_method(method_name, self, args).update(&block)
     end
 
   private
