@@ -32,7 +32,7 @@ module MethodCache
     end
     
     def update
-      value = block_given? ? yield(cache[key]) : args.first.send(:method_name_without_caching, *args)
+      value = block_given? ? yield(cache[key]) : target.send(method_name_without_caching, *args)
       write_to_cache(key, value)
       value
     end
