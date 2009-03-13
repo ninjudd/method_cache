@@ -105,7 +105,7 @@ private
   private
 
     def cached_method(method_name, target, args)
-      if self.kind_of?(Class)
+      if self.kind_of?(Class) or self.kind_of?(Module)
         proxy = cached_class_methods(method_name)
       else
         proxy = self.class.send(:cached_instance_methods, method_name)
