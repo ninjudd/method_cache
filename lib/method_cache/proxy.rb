@@ -83,7 +83,7 @@ module MethodCache
       if @key.nil?
         arg_string = ([method_name, target] + args).collect do |arg|
           case arg
-          when Class
+          when Class, Module
             class_key(arg)
           when defined?(ActiveRecord::Base) && ActiveRecord::Base
             "#{class_key(arg.class)}-#{arg.id}"
