@@ -90,7 +90,7 @@ module MethodCache
           when Symbol, String, Numeric
             arg.to_s
           else
-            hash = arg.respond_to?(:string_hash) ? arg.string_hash : arg.hash
+            hash = arg.respond_to?(:string_hash) ? arg.string_hash : Marshal.dump(arg).hash
             "#{class_key(arg.class)}-#{hash}"
           end
         end.join(',')
