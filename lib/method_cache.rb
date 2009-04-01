@@ -63,11 +63,15 @@ module MethodCache
     @default_cache ||= {}
   end
 
-private
-  
   def cached_instance_methods(method_name = nil)
     if method_name
-      cached_instance_methods[method_name.to_sym]
+      method_name = method_name.to_sym
+      ancestors.each do |klass|
+        next unless klass.kind_of?(MethodCache)
+        proxy = klass.cached_instance_methods[method_name]
+        return proxy if proxy
+      end
+      nil
     else
       @cached_instance_methods ||= {}
     end
@@ -75,7 +79,13 @@ private
 
   def cached_class_methods(method_name = nil)
     if method_name
-      cached_class_methods[method_name.to_sym]
+      method_name = method_name.to_sym
+      ancestors.each do |klass|
+        next unless klass.kind_of?(MethodCache)
+        proxy = klass.cached_class_methods[method_name]
+        return proxy if proxy
+      end
+      nil
     else
       @cached_class_methods ||= {}
     end
