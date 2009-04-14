@@ -75,6 +75,10 @@ module MethodCache
       @cache
     end
 
+    def local?
+      cache.kind_of?(Hash)
+    end
+
     def clone?
       !!@opts[:clone]
     end
@@ -82,19 +86,9 @@ module MethodCache
     def key
       if @key.nil?
         arg_string = ([method_name, target] + args).collect do |arg|
-          case arg
-          when Class, Module
-            class_key(arg)
-          when defined?(ActiveRecord::Base) && ActiveRecord::Base
-            "#{class_key(arg.class)}-#{arg.id}"
-          when Symbol, String, Numeric
-            arg.to_s
-          else
-            hash = arg.respond_to?(:string_hash) ? arg.string_hash : Marshal.dump(arg).hash
-            "#{class_key(arg.class)}-#{hash}"
-          end
-        end.join(',')
-        @key = "m:#{arg_string}"
+          object_key(arg)
+        end.join('|')
+        @key = "m|#{arg_string}"
       end
       @key
     end
@@ -131,6 +125,29 @@ module MethodCache
         cache.set(key, value, expiry(value))
       end
     end
+
+    def object_key(arg)      
+      return "#{class_key(arg.class)}-#{arg.string_hash}" if arg.respond_to?(:string_hash)
+
+      case arg
+      when NilClass      : 'nil'
+      when TrueClass     : 'true'
+      when FalseClass    : 'false'
+      when Numeric       : arg.to_s
+      when Symbol        : ":#{arg}"
+      when String        : "'#{arg}'"
+      when Class, Module : class_key(arg)
+      when Hash
+        '{' + arg.collect {|key, value| "#{object_key(key)}=#{object_key(value)}"}.sort.join(',') + '}'
+      when Array
+        '[' + arg.collect {|item| object_key(item)}.join(',') + ']'
+      when defined?(ActiveRecord::Base) && ActiveRecord::Base
+        "#{class_key(arg.class)}-#{arg.id}"
+      else
+        hash = local? ? arg.hash : Marshal.dump(arg).hash
+        "#{class_key(arg.class)}-#{hash}"
+      end
+    end 
 
     def class_key(klass)
       klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name

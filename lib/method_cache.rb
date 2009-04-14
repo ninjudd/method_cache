@@ -1,5 +1,4 @@
-#require 'memcache'
-require File.dirname(__FILE__) + '/../../memcache/lib/memcache'
+require 'memcache'
 
 $:.unshift(File.dirname(__FILE__))
 require 'method_cache/proxy'
@@ -101,27 +100,27 @@ module MethodCache
 
   module InvalidationMethods
    def invalidate_cached_method(method_name, *args, &block)
-      cached_method(method_name, self, args).invalidate(&block)
+      cached_method(method_name, args).invalidate(&block)
     end
 
     def method_value_cached?(method_name, *args)
-      cached_method(method_name, self, args).cached?
+      cached_method(method_name, args).cached?
     end
     
     def update_cached_method(method_name, *args, &block)
-      cached_method(method_name, self, args).update(&block)
+      cached_method(method_name, args).update(&block)
     end
 
   private
 
-    def cached_method(method_name, target, args)
+    def cached_method(method_name, args)
       if self.kind_of?(Class) or self.kind_of?(Module)
         proxy = cached_class_methods(method_name)
       else
         proxy = self.class.send(:cached_instance_methods, method_name)
       end
       raise "method '#{method_name}' not cached" unless proxy
-      proxy.bind(target, args)
+      proxy.bind(self, args)
     end
   end
 
