@@ -1,6 +1,6 @@
 module MethodCache
   class Proxy
-    attr_reader :method_name, :args, :target
+    attr_reader :method_name, :opts, :args, :target
 
     def initialize(method_name, opts)
       @method_name = method_name
@@ -25,6 +25,10 @@ module MethodCache
         return if value and not yield(value)
       end
       cache.delete(key)
+    end
+
+    def context
+      opts[:context]
     end
 
     def cached?
@@ -69,7 +73,7 @@ module MethodCache
 
     def cache
       if @cache.nil?
-        @cache = @opts[:cache] || MethodCache.default_cache
+        @cache = opts[:cache] || MethodCache.default_cache
         @cache = MemCache.pool[@cache] if @cache.kind_of?(Symbol)
       end
       @cache
@@ -80,7 +84,7 @@ module MethodCache
     end
 
     def clone?
-      !!@opts[:clone]
+      !!opts[:clone]
     end
 
     def key
@@ -96,19 +100,19 @@ module MethodCache
   private
 
     def expiry(value)
-      @opts[:expiry].kind_of?(Proc) ? call_lambda(:expiry, value) : @opts[:expiry].to_i
+      opts[:expiry].kind_of?(Proc) ? call_lambda(:expiry, value) : opts[:expiry].to_i
     end
 
     def valid?(type, value)
       name = "#{type}_validation".to_sym
-      return true unless @opts[name]
+      return true unless opts[name]
       return unless value
 
       call_lambda(name, value)
     end
 
     def call_lambda(name, value)
-      proc = @opts[name].bind(target)
+      proc = opts[name].bind(target)
       if proc.arity == 1
         proc.call(value)
       else
@@ -118,7 +122,7 @@ module MethodCache
 
     def write_to_cache(key, value)
       if cache.kind_of?(Hash)
-        raise 'expiry not permitted when cache is a Hash' if @opts[:expiry]
+        raise 'expiry not permitted when cache is a Hash' if opts[:expiry]
         cache[key] = value
       else
         value  = value.nil? ? NULL : value
@@ -150,7 +154,7 @@ module MethodCache
     end 
 
     def class_key(klass)
-      klass.respond_to?(:version) ? "#{klass.name}_#{klass.version}" : klass.name
+      klass.respond_to?(:version) ? "#{klass.name}_#{klass.version(context)}" : klass.name
     end
   end
 end
