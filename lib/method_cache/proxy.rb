@@ -31,6 +31,10 @@ module MethodCache
       opts[:context]
     end
 
+    def version
+      dynamic_opt(:version)
+    end
+
     def cached?
       not cache[key].nil?
     end
@@ -92,7 +96,7 @@ module MethodCache
         arg_string = ([method_name, target] + args).collect do |arg|
           object_key(arg)
         end.join('|')
-        @key = "m|#{arg_string}"
+        @key = ['m', version, arg_string].compact.join('|')
       end
       @key
     end
@@ -100,23 +104,28 @@ module MethodCache
   private
 
     def expiry(value)
-      opts[:expiry].kind_of?(Proc) ? call_lambda(:expiry, value) : opts[:expiry].to_i
+      dynamic_opt(:expiry, value).to_i
     end
 
     def valid?(type, value)
       name = "#{type}_validation".to_sym
       return true unless opts[name]
       return unless value
-
-      call_lambda(name, value)
+      
+      dynamic_opt(name, value)
     end
 
-    def call_lambda(name, value)
-      proc = opts[name].bind(target)
-      if proc.arity == 1
-        proc.call(value)
+    def dynamic_opt(name, value = nil)
+      if opts[name].kind_of?(Proc)
+        proc = opts[name].bind(target)       
+        case proc.arity
+        when 0: proc.call()
+        when 1: proc.call(value)
+        else
+          proc.call(value, *args)
+        end
       else
-        proc.call(value, *args)
+        opts[name]
       end
     end
 
