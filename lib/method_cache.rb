@@ -4,8 +4,6 @@ $:.unshift(File.dirname(__FILE__))
 require 'method_cache/proxy'
 
 module MethodCache
-  VERSION = '0.6.0'
-
   def cache_method(method_name, opts = {})
     method_name = method_name.to_sym
     proxy = opts.kind_of?(Proxy) ? opts : Proxy.new(method_name, opts)
