@@ -72,7 +72,10 @@ module MethodCache
     end
 
     def method_name_without_caching
-      "#{method_name}_without_caching"
+      @method_name_without_caching ||= begin
+        base_name, punctuation = method_name.to_s.sub(/([?!=])$/, ''), $1
+        "#{base_name}_without_caching#{punctuation}"
+      end
     end
 
     def cache
