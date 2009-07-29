@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
   s.name = %q{method_cache}
-  s.version = "0.6.1"
+  s.version = "0.6.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Justin Balthrop"]
-  s.date = %q{2009-04-16}
+  s.date = %q{2009-07-29}
   s.description = %q{Simple memcache-based memoization library for Ruby}
   s.email = %q{code@justinbalthrop.com}
   s.files = ["README.rdoc", "VERSION.yml", "lib/method_cache", "lib/method_cache/proxy.rb", "lib/method_cache.rb", "test/method_cache_test.rb", "test/test_helper.rb"]
