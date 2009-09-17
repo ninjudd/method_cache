@@ -81,7 +81,7 @@ module MethodCache
     def cache
       if @cache.nil?
         @cache = opts[:cache] || MethodCache.default_cache
-        @cache = MemCache.pool[@cache] if @cache.kind_of?(Symbol)
+        @cache = Memcache.pool[@cache] if @cache.kind_of?(Symbol)
       end
       @cache
     end
@@ -138,7 +138,7 @@ module MethodCache
         cache[key] = value
       else
         value  = value.nil? ? NULL : value
-        cache.set(key, value, expiry(value))
+        cache.set(key, value, :expiry => expiry(value))
       end
     end
 
