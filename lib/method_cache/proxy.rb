@@ -10,7 +10,7 @@ module MethodCache
     def bind(target, args)
       self.clone.bind!(target, args)
     end
-    
+
     def bind!(target, args)
       @target = target
       @args   = args
@@ -38,7 +38,7 @@ module MethodCache
     def cached?
       not cache[key].nil?
     end
-    
+
     def update
       value = block_given? ? yield(cache[key]) : target.send(method_name_without_caching, *args)
       write_to_cache(key, value)
@@ -46,14 +46,14 @@ module MethodCache
     end
 
     def value
-      value = cache[key]
+      value = cache[key] unless MethodCache.disabled?
       value = nil unless valid?(:load, value)
 
       if value.nil?
         value = target.send(method_name_without_caching, *args)
         write_to_cache(key, value) if valid?(:save, value)
       end
-          
+
       value = nil if value == NULL
       if clone? and value
         value.clone
@@ -114,13 +114,13 @@ module MethodCache
       name = "#{type}_validation".to_sym
       return true unless opts[name]
       return unless value
-      
+
       dynamic_opt(name, value)
     end
 
     def dynamic_opt(name, value = nil)
       if opts[name].kind_of?(Proc)
-        proc = opts[name].bind(target)       
+        proc = opts[name].bind(target)
         case proc.arity
         when 0: proc.call()
         when 1: proc.call(value)
@@ -142,7 +142,7 @@ module MethodCache
       end
     end
 
-    def object_key(arg)      
+    def object_key(arg)
       return "#{class_key(arg.class)}-#{arg.string_hash}" if arg.respond_to?(:string_hash)
 
       case arg
@@ -163,7 +163,7 @@ module MethodCache
         hash = local? ? arg.hash : Marshal.dump(arg).hash
         "#{class_key(arg.class)}-#{hash}"
       end
-    end 
+    end
 
     def class_key(klass)
       klass.respond_to?(:version) ? "#{klass.name}_#{klass.version(context)}" : klass.name

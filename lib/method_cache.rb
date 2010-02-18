@@ -7,7 +7,7 @@ module MethodCache
   def cache_method(method_name, opts = {})
     method_name = method_name.to_sym
     proxy = opts.kind_of?(Proxy) ? opts : Proxy.new(method_name, opts)
-    
+
     if self.class == Class
       return if instance_methods.include?(proxy.method_name_without_caching)
 
@@ -15,7 +15,7 @@ module MethodCache
         include(InvalidationMethods)
         extend(MethodAdded)
       end
-      
+
       cached_instance_methods[method_name] = nil
       begin
         # Replace instance method.
@@ -100,17 +100,32 @@ module MethodCache
     end
   end
 
+  def self.disable(&block)
+    @disabled, old = true, @disabled
+    yield
+  ensure
+    @disabled = old
+  end
+
+  def self.disabled?
+    @disabled
+  end
+
   module InvalidationMethods
-   def invalidate_cached_method(method_name, *args, &block)
+    def invalidate_cached_method(method_name, *args, &block)
       cached_method(method_name, args).invalidate(&block)
     end
 
     def method_value_cached?(method_name, *args)
       cached_method(method_name, args).cached?
     end
-    
+
     def update_cached_method(method_name, *args, &block)
       cached_method(method_name, args).update(&block)
+    end
+
+    def without_method_cache(&block)
+      MethodCache.disable(&block)
     end
 
   private

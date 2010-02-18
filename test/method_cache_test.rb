@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/test_helper'
 
 class Foo
   extend MethodCache
- 
+
   def foo(i)
     @i ||= 0
     @i  += i
@@ -24,7 +24,7 @@ end
 
 module Bar
   extend MethodCache
-  
+
   cache_method :foo
   def foo(i)
     @i ||= 0
@@ -41,47 +41,64 @@ class TestMethodCache < Test::Unit::TestCase
     a = Foo.new
     f1 = a.foo(1)
     f2 = a.foo(2)
-    
+
     assert_equal 1, f1
     assert_equal 3, f2
-    
+
     assert f1 == a.foo(1)
     assert f1 != f2
     assert f2 == a.foo(2)
-    
+
     b = a.bar
     assert b == a.bar
     assert b == a.bar
+  end
+
+  should 'disable method_cache' do
+    a = Foo.new
+    f1 = a.foo(1)
+
+    f2 = a.without_method_cache do
+      a.foo(1)
+    end
+
+    f3 = MethodCache.disable do
+      a.foo(1)
+    end
+
+    assert f1 != f2
+    assert f1 != f3
+    assert f2 != f3
   end
 
   should 'cache methods remotely' do
     a = Foo.new
     b1 = a.baz(1)
     b2 = a.baz(2)
-    
+
     assert_equal 1, b1
     assert_equal 3, b2
-    
+
     assert b1 == a.baz(1)
     assert b1 != b2
     assert b2 == a.baz(2)
-  end  
+  end
 
   should 'cache methods for mixins' do
     a = Baz.new
-    
+
     assert_equal 1, a.foo(1)
     assert_equal 1, a.foo(1)
     assert_equal 3, a.foo(2)
     assert_equal 3, a.foo(2)
   end
-  
+
   should 'invalidate cached method' do
     a = Foo.new
-    
+
     assert_equal 1, a.foo(1)
     assert_equal 3, a.foo(2)
-    
+
     a.invalidate_cached_method(:foo, 1)
 
     assert_equal 4, a.foo(1)
