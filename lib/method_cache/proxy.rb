@@ -1,3 +1,5 @@
+require 'digest/sha1'
+
 module MethodCache
   class Proxy
     attr_reader :method_name, :opts, :args, :target
@@ -100,6 +102,7 @@ module MethodCache
           object_key(arg)
         end.join('|')
         @key = ['m', version, arg_string].compact.join('|')
+        @key = "m|#{Digest::SHA1.hexdigest(@key)}" if @key.length > 250
       end
       @key
     end
