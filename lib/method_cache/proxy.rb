@@ -79,12 +79,11 @@ module MethodCache
       proxy = self # Need access to the proxy in the closure.
 
       lambda do |*args|
-        if args.empty?
-          proxy.bind(self, []).send(method_name, 1)
-        else
-          amount = args.shift
-          proxy.bind(self, args).send(method_name, amount)
+        if args.last.kind_of?(Hash) and args.last.keys == [:by]
+          amount = args.last[:by]
+          args.pop
         end
+        proxy.bind(self, args).send(method_name, amount || 1)
       end
     end
 

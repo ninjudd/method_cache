@@ -19,7 +19,6 @@ module MethodCache
       cached_instance_methods[method_name] = nil
       if method_defined?(method_name)
         if proxy.opts[:counter]
-          raise "counter only permitted on methods with arity 0" if instance_method(method_name).arity != 0
           define_method "increment_#{method_name}", proxy.counter_method(:increment)
           define_method "decrement_#{method_name}", proxy.counter_method(:decrement)
         end
@@ -53,7 +52,6 @@ module MethodCache
     if class_method_defined?(method_name)
       (class << self; self; end).module_eval do
         if proxy.opts[:counter]
-          raise "counter only permitted on methods with arity 0" if instance_method(method_name).arity != 0
           define_method "increment_#{method_name}", proxy.counter_method(:increment)
           define_method "decrement_#{method_name}", proxy.counter_method(:decrement)
         end

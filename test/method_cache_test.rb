@@ -43,7 +43,7 @@ module Bar
   end
 
   cache_method :foo_count, :counter => true, :cache => :default
-  def foo_count
+  def foo_count(key)
     100
   end
 end
@@ -139,16 +139,21 @@ class TestMethodCache < Test::Unit::TestCase
   should 'cache counters' do
     b = Baz.new
 
-    assert_equal 100, b.foo_count
-    b.increment_foo_count(42)
-    assert_equal 142, b.foo_count
-    b.decrement_foo_count(99)
-    assert_equal 43, b.foo_count
-    b.increment_foo_count
-    assert_equal 44, b.foo_count
+    assert_equal 100, b.foo_count(:bar)
+    b.increment_foo_count(:bar, :by => 42)
+    assert_equal 142, b.foo_count(:bar)
+    b.decrement_foo_count(:bar, :by => 99)
+    assert_equal 43, b.foo_count(:bar)
+    b.increment_foo_count(:bar)
+    assert_equal 44, b.foo_count(:bar)
+
+    assert_equal 100, b.foo_count(:baz)
+    b.increment_foo_count(:baz)
+    assert_equal 101, b.foo_count(:baz)
+    assert_equal 44,  b.foo_count(:bar) # make sure :bar wasn't affected
 
     assert_equal 0, Foo.zap
-    Foo.increment_zap(3)
+    Foo.increment_zap(:by => 3)
     assert_equal 3, Foo.zap
     Foo.decrement_zap
     assert_equal 2, Foo.zap
