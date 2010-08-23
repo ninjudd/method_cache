@@ -20,6 +20,17 @@ class Foo
     @@i += i
   end
   cache_method :baz, :cache => :remote
+
+  cache_class_method :bap
+  def self.bap(i)
+    @i ||= 0
+    @i  += i
+  end
+  
+  cache_class_method :zap, :counter => true
+  def self.zap
+    0
+  end
 end
 
 module Bar
@@ -30,10 +41,16 @@ module Bar
     @i ||= 0
     @i  += i
   end
+
+  cache_method :foo_count, :counter => true, :cache => :default
+  def foo_count
+    100
+  end
 end
 
 class Baz
   include Bar
+  extend  Bar
 end
 
 class TestMethodCache < Test::Unit::TestCase
@@ -84,6 +101,13 @@ class TestMethodCache < Test::Unit::TestCase
     assert b2 == a.baz(2)
   end
 
+  should 'cache class methods' do
+    assert_equal 10, Foo.bap(10)
+    assert_equal 23, Foo.bap(13)
+    assert_equal 10, Foo.bap(10)
+    assert_equal 23, Foo.bap(13)
+  end
+
   should 'cache methods for mixins' do
     a = Baz.new
 
@@ -91,6 +115,13 @@ class TestMethodCache < Test::Unit::TestCase
     assert_equal 1, a.foo(1)
     assert_equal 3, a.foo(2)
     assert_equal 3, a.foo(2)
+  end
+
+  should 'cache class methods for mixins' do
+    assert_equal 1, Baz.foo(1)
+    assert_equal 1, Baz.foo(1)
+    assert_equal 3, Baz.foo(2)
+    assert_equal 3, Baz.foo(2)
   end
 
   should 'invalidate cached method' do
@@ -103,6 +134,24 @@ class TestMethodCache < Test::Unit::TestCase
 
     assert_equal 4, a.foo(1)
     assert_equal 3, a.foo(2)
+  end
+
+  should 'cache counters' do
+    b = Baz.new
+
+    assert_equal 100, b.foo_count
+    b.increment_foo_count(42)
+    assert_equal 142, b.foo_count
+    b.decrement_foo_count(99)
+    assert_equal 43, b.foo_count
+    b.increment_foo_count
+    assert_equal 44, b.foo_count
+
+    assert_equal 0, Foo.zap
+    Foo.increment_zap(3)
+    assert_equal 3, Foo.zap
+    Foo.decrement_zap
+    assert_equal 2, Foo.zap
   end
 
   should 'use consistent local keys' do

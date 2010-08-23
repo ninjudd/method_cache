@@ -17,13 +17,16 @@ module MethodCache
       end
 
       cached_instance_methods[method_name] = nil
-      begin
+      if method_defined?(method_name)
+        if proxy.opts[:counter]
+          raise "counter only permitted on methods with arity 0" if instance_method(method_name).arity != 0
+          define_method "increment_#{method_name}", proxy.counter_method(:increment)
+          define_method "decrement_#{method_name}", proxy.counter_method(:decrement)
+        end
+
         # Replace instance method.
         alias_method proxy.method_name_without_caching, method_name
         define_method method_name, proxy.method_with_caching
-      rescue NameError => e
-        # The method has not been defined yet. We will alias it in method_added.
-        # pp e, e.backtrace
       end
       cached_instance_methods[method_name] = proxy
 
@@ -47,17 +50,27 @@ module MethodCache
 
     method_name = method_name.to_sym
     cached_class_methods[method_name] = nil
-    begin
-      # Replace class method.
+    if class_method_defined?(method_name)
       (class << self; self; end).module_eval do
+        if proxy.opts[:counter]
+          raise "counter only permitted on methods with arity 0" if instance_method(method_name).arity != 0
+          define_method "increment_#{method_name}", proxy.counter_method(:increment)
+          define_method "decrement_#{method_name}", proxy.counter_method(:decrement)
+        end
+
+        # Replace class method.
         alias_method proxy.method_name_without_caching, method_name
         define_method method_name, proxy.method_with_caching
       end
-    rescue NameError => e
-      # The method has not been defined yet. We will alias it in singleton_method_added.
-      # pp e, e.backtrace
     end
     cached_class_methods[method_name] = proxy
+  end
+
+  def class_method_defined?(method_name)
+    method(method_name)
+    true
+  rescue NameError
+    false
   end
 
   def self.default_cache

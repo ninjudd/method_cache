@@ -3,10 +3,12 @@ require 'digest/sha1'
 module MethodCache
   class Proxy
     attr_reader :method_name, :opts, :args, :target
+    NULL = 'NULL'
 
     def initialize(method_name, opts)
+      opts[:cache] ||= :counters if opts[:counter]
       @method_name = method_name
-      @opts        = opts
+      @opts        = opts      
     end
 
     def bind(target, args)
@@ -48,11 +50,12 @@ module MethodCache
     end
 
     def value
-      value = cache[key] unless MethodCache.disabled?
+      value = opts[:counter] ? cache.count(key) : cache[key] unless MethodCache.disabled?
       value = nil unless valid?(:load, value)
 
       if value.nil?
         value = target.send(method_name_without_caching, *args)
+        raise "non-integer value returned by counter method" if opts[:counter] and not value.kind_of?(Fixnum)
         write_to_cache(key, value) if valid?(:save, value)
       end
 
@@ -64,12 +67,24 @@ module MethodCache
       end
     end
 
-    NULL = 'NULL'
     def method_with_caching
       proxy = self # Need access to the proxy in the closure.
 
       lambda do |*args|
         proxy.bind(self, args).value
+      end
+    end
+
+    def counter_method(method_name)
+      proxy = self # Need access to the proxy in the closure.
+
+      lambda do |*args|
+        if args.empty?
+          proxy.bind(self, []).send(method_name, 1)
+        else
+          amount = args.shift
+          proxy.bind(self, args).send(method_name, amount)
+        end
       end
     end
 
@@ -137,12 +152,25 @@ module MethodCache
 
     def write_to_cache(key, value)
       if cache.kind_of?(Hash)
-        raise 'expiry not permitted when cache is a Hash' if opts[:expiry]
+        raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
+        raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
         cache[key] = value
+      elsif opts[:counter]
+        cache.write(key, value, :expiry => expiry(value))
       else
-        value  = value.nil? ? NULL : value
+        value = value.nil? ? NULL : value
         cache.set(key, value, :expiry => expiry(value))
       end
+    end
+
+    def increment(amount)
+      raise "cannot increment non-counter method" unless opts[:counter]
+      cache.incr(key, amount)
+    end
+
+    def decrement(amount)
+      raise "cannot decrement non-counter method" unless opts[:counter]
+      cache.decr(key, amount)
     end
 
     def object_key(arg)
