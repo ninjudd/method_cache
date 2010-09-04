@@ -155,7 +155,7 @@ module MethodCache
         raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
         cache[key] = value
       elsif opts[:counter]
-        cache.write(key, value, :expiry => expiry(value))
+        cache.write(key, value.to_s, :expiry => expiry(value))
       else
         value = value.nil? ? NULL : value
         cache.set(key, value, :expiry => expiry(value))
