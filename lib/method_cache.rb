@@ -17,7 +17,7 @@ module MethodCache
       end
 
       cached_instance_methods[method_name] = nil
-      if method_defined?(method_name)
+      if method_defined?(method_name) or private_method_defined?(method_name)
         if proxy.opts[:counter]
           define_method "increment_#{method_name}", proxy.counter_method(:increment)
           define_method "decrement_#{method_name}", proxy.counter_method(:decrement)
