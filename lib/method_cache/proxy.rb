@@ -139,8 +139,8 @@ module MethodCache
       if opts[name].kind_of?(Proc)
         proc = opts[name].bind(target)
         case proc.arity
-        when 0: proc.call()
-        when 1: proc.call(value)
+        when 0 then proc.call()
+        when 1 then proc.call(value)
         else
           proc.call(value, *args)
         end
@@ -176,13 +176,13 @@ module MethodCache
       return "#{class_key(arg.class)}-#{arg.string_hash}" if arg.respond_to?(:string_hash)
 
       case arg
-      when NilClass      : 'nil'
-      when TrueClass     : 'true'
-      when FalseClass    : 'false'
-      when Numeric       : arg.to_s
-      when Symbol        : ":#{arg}"
-      when String        : "'#{arg}'"
-      when Class, Module : class_key(arg)
+      when NilClass      then 'nil'
+      when TrueClass     then 'true'
+      when FalseClass    then 'false'
+      when Numeric       then arg.to_s
+      when Symbol        then ":#{arg}"
+      when String        then "'#{arg}'"
+      when Class, Module then class_key(arg)
       when Hash
         '{' + arg.collect {|key, value| "#{object_key(key)}=#{object_key(value)}"}.sort.join(',') + '}'
       when Array
