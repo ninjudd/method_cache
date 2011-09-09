@@ -1,5 +1,3 @@
-require 'memcache'
-
 $:.unshift(File.dirname(__FILE__))
 require 'method_cache/proxy'
 

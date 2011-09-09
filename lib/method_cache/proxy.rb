@@ -1,5 +1,9 @@
 require 'digest/sha1'
 
+class Object
+  def metaclass; class << self; self; end; end
+end
+
 module MethodCache
   class Proxy
     attr_reader :method_name, :opts, :args, :target
@@ -98,6 +102,13 @@ module MethodCache
       if @cache.nil?
         @cache = opts[:cache] || MethodCache.default_cache
         @cache = Memcache.pool[@cache] if @cache.kind_of?(Symbol)
+        if not @cache.respond_to?(:[]) and @cache.respond_to?(:get)
+          @cache.metaclass.module_eval do
+            define_method :[] do |key|
+              get(key)
+            end
+          end
+        end
       end
       @cache
     end
@@ -124,7 +135,12 @@ module MethodCache
   private
 
     def expiry(value)
-      dynamic_opt(:expiry, value).to_i
+      value = dynamic_opt(:expiry, value).to_i
+      if cache.kind_of?(Memcache)
+        {:expiry => value}
+      else
+        value
+      end
     end
 
     def valid?(type, value)
@@ -155,10 +171,10 @@ module MethodCache
         raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
         cache[key] = value
       elsif opts[:counter]
-        cache.write(key, value.to_s, :expiry => expiry(value))
+        cache.write(key, value.to_s, expiry(value))
       else
         value = value.nil? ? NULL : value
-        cache.set(key, value, :expiry => expiry(value))
+        cache.set(key, value, expiry(value))
       end
     end
 
