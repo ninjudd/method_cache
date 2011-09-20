@@ -32,6 +32,14 @@ class Foo
   def self.zap
     0
   end
+
+  attr_accessor :z
+  def zang
+    self.z ||= 1
+    self.z  += 1
+    nil
+  end
+  cache_method :zang
 end
 
 module Bar
@@ -182,5 +190,12 @@ class TestMethodCache < Test::Unit::TestCase
       key = a.send(:cached_method, :baz, [{:a => 3, :b => [5,6], :c => o}, [false,true,{:o => o}]]).key
       assert_equal "m|:baz|Foo-#{a_hash}|{:a=3,:b=[5,6],:c=Object-#{o_hash}}|[false,true,{:o=Object-#{o_hash}}]", key
     end
+  end
+  
+  should 'cache nil locally' do
+    a = Foo.new
+    a.zang
+    a.zang
+    assert_equal 2, a.z
   end
 end

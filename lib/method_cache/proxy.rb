@@ -136,7 +136,7 @@ module MethodCache
 
     def expiry(value)
       value = dynamic_opt(:expiry, value).to_i
-      if cache.kind_of?(Memcache)
+      if defined?(Memcache) and cache.kind_of?(Memcache)
         {:expiry => value}
       else
         value
@@ -166,6 +166,9 @@ module MethodCache
     end
 
     def write_to_cache(key, value)
+      unless opts[:counter]
+        value = value.nil? ? NULL : value
+      end
       if cache.kind_of?(Hash)
         raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
         raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
@@ -173,7 +176,6 @@ module MethodCache
       elsif opts[:counter]
         cache.write(key, value.to_s, expiry(value))
       else
-        value = value.nil? ? NULL : value
         cache.set(key, value, expiry(value))
       end
     end
