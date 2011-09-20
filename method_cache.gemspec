@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{method_cache}
-  s.version = "0.6.4"
+  s.version = "0.7.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Justin Balthrop"]
-  s.date = %q{2011-08-23}
+  s.date = %q{2011-09-20}
   s.description = %q{Simple memcache-based memoization library for Ruby}
   s.email = %q{code@justinbalthrop.com}
   s.extra_rdoc_files = [
@@ -24,15 +24,17 @@ Gem::Specification.new do |s|
     "lib/method_cache.rb",
     "lib/method_cache/proxy.rb",
     "method_cache.gemspec",
+    "test/method_cache_remote_test.rb",
     "test/method_cache_test.rb",
     "test/test_helper.rb"
   ]
   s.homepage = %q{http://github.com/ninjudd/method_cache}
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.5.2}
+  s.rubygems_version = %q{1.3.7}
   s.summary = %q{Simple memcache-based memoization library for Ruby}
 
   if s.respond_to? :specification_version then
+    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
