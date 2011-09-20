@@ -1,5 +1,5 @@
---- 
-:build: 
-:minor: 6
-:patch: 4
+---
 :major: 0
+:minor: 7
+:patch: 0
+:build: !!null 
