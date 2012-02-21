@@ -2,6 +2,7 @@ $:.unshift(File.dirname(__FILE__))
 require 'method_cache/local_cache'
 require 'method_cache/proxy'
 
+module Ifttt
 module MethodCache
   def cache_method(method_name, opts = {})
     method_name = method_name.to_sym
@@ -74,10 +75,18 @@ module MethodCache
     @default_cache ||= LocalCache.new
   end
 
+  def get_ancestors
+    if self.respond_to?(:ancestors)
+      self.ancestors
+    else
+      self.class.ancestors
+    end
+  end
+
   def cached_instance_methods(method_name = nil)
     if method_name
       method_name = method_name.to_sym
-      ancestors.each do |klass|
+      get_ancestors.each do |klass|
         next unless klass.kind_of?(MethodCache)
         proxy = klass.cached_instance_methods[method_name]
         return proxy if proxy
@@ -91,7 +100,7 @@ module MethodCache
   def cached_class_methods(method_name = nil)
     if method_name
       method_name = method_name.to_sym
-      ancestors.each do |klass|
+      get_ancestors.each do |klass|
         next unless klass.kind_of?(MethodCache)
         proxy = klass.cached_class_methods[method_name]
         return proxy if proxy
@@ -192,4 +201,5 @@ module MethodCache
       end
     end
   end
+end
 end
