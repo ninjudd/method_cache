@@ -6,7 +6,7 @@ Ruby.
 == Usage:
 
   class Foo
-    extend MethodCache
+    extend Ifttt::MethodCache
 
     cache_method :bar
     def bar
@@ -34,6 +34,21 @@ Ruby.
 == Install:
 
   gem install method_cache
+
+== About this fork:
+
+Forked for ifttt
+
+=== About instances
+
+*This is important, please make sure you understand it*
+
+By default this method will qualify the key based on an instance hash. 
+
+That is, by default, every instance will cache to a *different* key, even given the same arguments. (This makes sense, technically all the instance variables of an object are arguments and thus the output could be different.)
+
+If you want all instance to share a cache for a given set of arguments, first, consider making this a class method and calling that. Second, if you absolutely have to have it be an instance method, define #string_hash on your method and, if that method is consistent, all the instances will share a hash key for a given set of arguments.
+
 
 == License:
 

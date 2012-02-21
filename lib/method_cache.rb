@@ -6,6 +6,7 @@ module Ifttt
 module MethodCache
   def cache_method(method_name, opts = {})
     method_name = method_name.to_sym
+    (opts[:version] ||= self.to_s) if self.class == Module # maybe in other cases too?
     proxy = opts.kind_of?(Proxy) ? opts : Proxy.new(method_name, opts)
 
     if self.class == Class

@@ -240,6 +240,8 @@ module MethodCache
       when defined?(ActiveRecord::Base) && ActiveRecord::Base
         "#{class_key(arg.class)}-#{arg.id}"
       else
+        # such a tricky case. if you want all instances to share the same value then implement #method_cache_key
+        # otherwise this cache is instance specific
         if arg.respond_to?(:method_cache_key)
           arg.method_cache_key
         else
