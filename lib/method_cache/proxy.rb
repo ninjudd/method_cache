@@ -143,6 +143,7 @@ module MethodCache
         @key = [version, arg_string].compact.join('|')
         @key = Digest::SHA1.hexdigest(@key) if @key.length > 250
       end
+      puts "cache key: #{@key}" if MethodCache.verbose?
       "m#{MethodCache.version}|#{@key}"
     end
 
@@ -223,7 +224,7 @@ module MethodCache
     end
 
     def object_key(arg)
-      return "#{class_key(arg.class)}-#{arg.string_hash}" if arg.respond_to?(:string_hash)
+      return "#{class_key(arg.class)}-#{arg.method_cache_key}" if arg.respond_to?(:method_cache_key)
 
       case arg
       when NilClass      then 'nil'
