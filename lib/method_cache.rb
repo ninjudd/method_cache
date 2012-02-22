@@ -2,7 +2,6 @@ $:.unshift(File.dirname(__FILE__))
 require 'method_cache/local_cache'
 require 'method_cache/proxy'
 
-module Ifttt
 module MethodCache
   def cache_method(method_name, opts = {})
     method_name = method_name.to_sym
@@ -77,11 +76,12 @@ module MethodCache
   end
 
   def get_ancestors
-    if self.respond_to?(:ancestors)
-      self.ancestors
-    else
-      self.class.ancestors
-    end
+    ancestors = if self.respond_to?(:ancestors)
+                  self.ancestors
+                else
+                  self.class.ancestors
+                end
+    ancestors + extended_modules
   end
 
   def cached_instance_methods(method_name = nil)
@@ -89,6 +89,7 @@ module MethodCache
       method_name = method_name.to_sym
       get_ancestors.each do |klass|
         next unless klass.kind_of?(MethodCache)
+        # pp [:found, method_name, klass, klass.cached_instance_methods]
         proxy = klass.cached_instance_methods[method_name]
         return proxy if proxy
       end
@@ -158,11 +159,19 @@ module MethodCache
 
   private
 
+    def extended_modules
+      (class << self; self end).included_modules
+    end
+
     def cached_method(method_name, args)
       if self.kind_of?(Class) or self.kind_of?(Module)
         proxy = cached_class_methods(method_name)
       else
-        proxy = self.class.send(:cached_instance_methods, method_name)
+        if self.class.respond_to?(:cached_instance_methods)
+          proxy = self.class.send(:cached_instance_methods, method_name)
+        else
+          proxy = cached_instance_methods(method_name)
+        end
       end
       raise "method '#{method_name}' not cached" unless proxy
       proxy.bind(self, args)
@@ -202,5 +211,4 @@ module MethodCache
       end
     end
   end
-end
 end
