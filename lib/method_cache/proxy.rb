@@ -9,6 +9,12 @@ module MethodCache
     attr_reader :method_name, :opts, :args, :target
     NULL = 'NULL'
 
+    def self.asciify(s)
+      s.gsub(/([^\x20-\x7F]+)/) do
+        '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+      end.tr(' ', '_')
+    end
+
     def initialize(method_name, opts)
       opts[:cache] ||= :counters if opts[:counter]
       @method_name = method_name
@@ -141,7 +147,7 @@ module MethodCache
     def key
       if @key.nil?
         arg_string = ([method_name, target] + args).collect do |arg|
-          object_key(arg)
+          self.class.asciify(object_key(arg))
         end.join('|')
         @key = [version, arg_string].compact.join('|')
         @key = Digest::SHA1.hexdigest(@key) if @key.length > 250
@@ -197,17 +203,26 @@ module MethodCache
     end
 
     def write_to_cache(key, value)
-      unless opts[:counter]
-        value = value.nil? ? NULL : value
-      end
-      if cache.kind_of?(Hash)
-        raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
-        raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
-        cache[key] = value
-      elsif opts[:counter]
-        cache.write(key, value.to_s, expiry(value))
-      else
-        cache.set(key, value, expiry(value))
+      begin
+        unless opts[:counter]
+          value = value.nil? ? NULL : value
+        end
+        if cache.kind_of?(Hash)
+          raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
+          raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
+          cache[key] = value
+        elsif opts[:counter]
+          cache.write(key, value.to_s, expiry(value))
+        else
+          cache.set(key, value, expiry(value))
+        end
+      rescue Dalli::DalliError => e
+        if e.message =~ /Value too large/
+          puts "WARNING #{self.class}: #{key} not written when trying to #write_to_cache. #{e.message}"
+          nil
+        else
+          raise e
+        end
       end
     end
 
