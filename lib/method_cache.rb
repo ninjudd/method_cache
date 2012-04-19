@@ -13,6 +13,7 @@ module MethodCache
 
       if cached_instance_methods.empty?
         include(HelperMethods)
+        extend(InvalidationMethods)
         extend(MethodAdded)
       end
 
