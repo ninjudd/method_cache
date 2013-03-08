@@ -207,6 +207,8 @@ module MethodCache
         '[' + arg.collect {|item| object_key(item)}.join(',') + ']'
       when defined?(ActiveRecord::Base) && ActiveRecord::Base
         "#{class_key(arg.class)}-#{arg.id}"
+      elsif arg.respond_to?(:method_cache_key)
+        arg.method_cache_key
       else
         hash = local? ? arg.hash : Marshal.dump(arg).hash
         "#{class_key(arg.class)}-#{hash}"
