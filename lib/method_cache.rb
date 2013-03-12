@@ -109,7 +109,7 @@ module MethodCache
     end
   end
 
-  def self.disable(&block)
+  def self.disable(value = true, &block)
     @disabled, old = true, @disabled
     yield
   ensure
