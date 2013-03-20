@@ -48,9 +48,15 @@ module MethodCache
     end
 
     def update
-      value = block_given? ? yield(cache[key]) : target.send(method_name_without_caching, *args)
-      write_to_cache(key, value)
-      value
+      if block_given?
+        old_value = cache[key]
+        new_value = yield(old_value)
+        return if old_value == new_value
+      else
+        new_value = target.send(method_name_without_caching, *args)
+      end
+      write_to_cache(key, new_value)
+      new_value
     end
 
     def value
