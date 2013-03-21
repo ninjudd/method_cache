@@ -49,7 +49,10 @@ module MethodCache
 
     def update
       if block_given?
-        old_value = cache[key]
+        old_value = read_from_cache(key)
+        return if old_value.nil?
+
+        old_value = nil if old_value == NULL
         new_value = yield(old_value)
         return if old_value == new_value
       else
@@ -60,7 +63,7 @@ module MethodCache
     end
 
     def value
-      value = opts[:counter] ? cache.count(key) : cache[key] unless MethodCache.disabled?
+      value = read_from_cache(key)
       value = nil unless valid?(:load, value)
 
       if value.nil?
@@ -184,6 +187,11 @@ module MethodCache
       else
         cache.set(key, value, expiry(value))
       end
+    end
+
+    def read_from_cache(key)
+      return if MethodCache.disabled?
+      opts[:counter] ? cache.count(key) : cache[key]
     end
 
     def increment(amount)
