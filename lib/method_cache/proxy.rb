@@ -72,6 +72,11 @@ module MethodCache
         write_to_cache(key, value) if valid?(:save, value)
       end
 
+      if opts[:counter]
+        value = [value, opts[:max]].max if opts[:max]
+        value = [value, opts[:min]].min if opts[:min]
+      end
+
       value = nil if value == NULL
       if clone? and value
         value.clone
