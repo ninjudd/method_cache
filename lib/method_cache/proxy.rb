@@ -73,8 +73,8 @@ module MethodCache
       end
 
       if opts[:counter]
-        value = [value, opts[:max]].max if opts[:max]
-        value = [value, opts[:min]].min if opts[:min]
+        value = [value, opts[:max]].min if opts[:max]
+        value = [value, opts[:min]].max if opts[:min]
       end
 
       value = nil if value == NULL
