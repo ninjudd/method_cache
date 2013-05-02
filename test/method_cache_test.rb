@@ -75,9 +75,9 @@ class TestMethodCache < Test::Unit::TestCase
     assert_not_equal f1, f2
     assert_equal     f2, a.foo(2)
 
-    # b = a.bar
-    # assert_equal b, a.bar
-    # assert_equal b, a.bar
+    b = a.bar
+    assert_equal b, a.bar
+    assert_equal b, a.bar
   end
 
   should 'disable method_cache' do
