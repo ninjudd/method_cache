@@ -1,6 +1,8 @@
 require File.dirname(__FILE__) + '/test_helper'
 require 'memcache'
 
+TEST_EXPIRY = 1
+
 class Foo
   extend MethodCache
 
@@ -27,7 +29,7 @@ class Foo
     @i ||= 0
     @i  += i
   end
-  
+
   cache_class_method :zap, :counter => true
   def self.zap
     0
@@ -40,6 +42,11 @@ class Foo
     nil
   end
   cache_method :zang
+
+  cache_method :pow, :expiry => TEST_EXPIRY
+  def pow(ignored)
+    Time.now
+  end
 end
 
 module Bar
@@ -78,6 +85,26 @@ class TestMethodCache < Test::Unit::TestCase
     b = a.bar
     assert_equal b, a.bar
     assert_equal b, a.bar
+  end
+
+  should 'store cached_at when cached locally' do
+    a = Foo.new
+    a.foo(1)
+
+    assert     a.method_cached_at(:foo, 1) <= Time.now
+    assert_nil a.method_cached_at(:foo, 2)
+  end
+
+  should 'expire and store expires_at when cached locally' do
+    a = Foo.new
+    t = a.pow(1)
+
+    assert     a.method_expires_at(:pow, 1) >= Time.now
+    assert_nil a.method_expires_at(:pow, 2)
+
+    # expire and recalculate
+    sleep TEST_EXPIRY
+    assert_not_equal t, a.pow(1)
   end
 
   should 'disable method_cache' do
@@ -191,7 +218,7 @@ class TestMethodCache < Test::Unit::TestCase
       assert_equal "m|:baz|Foo-#{a_hash}|{:a=3,:b=[5,6],:c=Object-#{o_hash}}|[false,true,{:o=Object-#{o_hash}}]", key
     end
   end
-  
+
   should 'cache nil locally' do
     a = Foo.new
     a.zang

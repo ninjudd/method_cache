@@ -18,9 +18,9 @@ module MethodCache
       get(key).to_i
     end
 
-    def set(key, value, opts = {})
+    def set(key, value, expiry)
       @cached_at[key]  = Time.now
-      @expires_at[key] = expiry_to_time(opts[:expiry])
+      @expires_at[key] = expiry_to_time(expiry)
       @data[key]       = value
     end
     alias []= set

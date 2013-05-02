@@ -146,6 +146,14 @@ module MethodCache
       @key
     end
 
+    def cached_at
+      cache.cached_at(key) if cache.respond_to?(:cached_at)
+    end
+
+    def expires_at
+      cache.expires_at(key) if cache.respond_to?(:expires_at)
+    end
+
   private
 
     def expiry(value)
@@ -202,14 +210,6 @@ module MethodCache
     def read_from_cache(key)
       return if MethodCache.disabled?
       opts[:counter] ? cache.count(key) : cache[key]
-    end
-
-    def cached_at
-      cache.cached_at(key) if cache.respond_to?(:cached_at)
-    end
-
-    def expires_at
-      cache.expires_at(key) if cache.respond_to?(:expires_at)
     end
 
     def increment(amount)
