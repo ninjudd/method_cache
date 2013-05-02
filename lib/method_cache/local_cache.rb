@@ -1,6 +1,10 @@
 module MethodCache
   class LocalCache
     def initialize
+      clear
+    end
+
+    def clear
       @data       = {}
       @cached_at  = {}
       @expires_at = {}
