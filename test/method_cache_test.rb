@@ -47,6 +47,21 @@ class Foo
   def pow(ignored)
     Time.now
   end
+
+  attr_accessor :bam_updated_at
+
+  cache_method :bam, :load_validation => lambda {|val, meta|
+    if bam_updated_at
+      meta[:cached_at] > bam_updated_at
+    else
+      true
+    end
+  }
+
+  def bam
+    @i ||= 0
+    @i  += 1
+  end
 end
 
 module Bar
@@ -105,6 +120,24 @@ class TestMethodCache < Test::Unit::TestCase
     # expire and recalculate
     sleep TEST_EXPIRY
     assert_not_equal t, a.pow(1)
+  end
+
+  should 'pass cached_at to load_validation' do
+    a = Foo.new
+    i = a.bam
+
+    assert a.method_cached_at(:bam) <= Time.now
+
+    # should be cached
+    assert_equal i, a.bam
+
+    # should still be cached
+    a.bam_updated_at = Time.now - 100
+    assert_equal i, a.bam
+
+    # should now be invalidated
+    a.bam_updated_at = Time.now + 100
+    assert_not_equal i, a.bam
   end
 
   should 'disable method_cache' do
