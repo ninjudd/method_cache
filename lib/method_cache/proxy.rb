@@ -128,7 +128,7 @@ module MethodCache
     end
 
     def local?
-      cache.kind_of?(Hash)
+      cache.kind_of?(LocalCache) or cache.kind_of?(Hash)
     end
 
     def clone?
@@ -167,12 +167,17 @@ module MethodCache
 
     def dynamic_opt(name, value = nil)
       if opts[name].kind_of?(Proc)
-        proc = opts[name].bind(target)
+        proc = opts[name]
         case proc.arity
-        when 0 then proc.call()
-        when 1 then proc.call(value)
+        when 0 then target.instance_exec(&proc)
+        when 1 then target.instance_exec(value, &proc)
         else
-          proc.call(value, *args)
+          meta = {
+            :args       => args,
+            :cached_at  => cached_at,
+            :expires_at => expires_at,
+          }
+          target.instance_exec(value, meta, &proc)
         end
       else
         opts[name]
@@ -197,6 +202,14 @@ module MethodCache
     def read_from_cache(key)
       return if MethodCache.disabled?
       opts[:counter] ? cache.count(key) : cache[key]
+    end
+
+    def cached_at
+      cache.cached_at(key) if cache.respond_to?(:cached_at)
+    end
+
+    def expires_at
+      cache.expires_at(key) if cache.respond_to?(:expires_at)
     end
 
     def increment(amount)

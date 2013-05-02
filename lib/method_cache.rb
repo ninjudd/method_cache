@@ -1,4 +1,5 @@
 $:.unshift(File.dirname(__FILE__))
+require 'method_cache/local_cache'
 require 'method_cache/proxy'
 
 module MethodCache
@@ -70,7 +71,7 @@ module MethodCache
   end
 
   def self.default_cache
-    @default_cache ||= {}
+    @default_cache ||= LocalCache.new
   end
 
   def cached_instance_methods(method_name = nil)
@@ -131,6 +132,14 @@ module MethodCache
 
     def update_cached_method(method_name, *args, &block)
       cached_method(method_name, args).update(&block)
+    end
+
+    def method_cached_at(method_name, *args)
+      cached_method(method_name, args).cached_at
+    end
+
+    def method_expires_at(method_name, *args)
+      cached_method(method_name, args).expires_at
     end
 
     def without_method_cache(&block)
