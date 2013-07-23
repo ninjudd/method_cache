@@ -84,6 +84,23 @@ class Baz
   extend  Bar
 end
 
+class A
+  extend MethodCache
+end
+
+class B < A
+  cache_method :foo
+  def foo
+    'old'
+  end
+end
+
+class C < B
+  def foo
+    'new'
+  end
+end
+
 class TestMethodCache < Test::Unit::TestCase
   should 'cache methods locally' do
     a = Foo.new
