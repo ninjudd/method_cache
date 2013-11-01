@@ -12,7 +12,7 @@ module MethodCache
     def initialize(method_name, opts)
       opts[:cache] ||= :counters if opts[:counter]
       @method_name = method_name
-      @opts        = opts      
+      @opts        = opts
     end
 
     def bind(target, args)
@@ -140,10 +140,10 @@ module MethodCache
         arg_string = ([method_name, target] + args).collect do |arg|
           object_key(arg)
         end.join('|')
-        @key = ['m', version, arg_string].compact.join('|')
-        @key = "m|#{Digest::SHA1.hexdigest(@key)}" if @key.length > 250
+        @key = [version, arg_string].compact.join('|')
+        @key = Digest::SHA1.hexdigest(@key) if @key.length > 250
       end
-      @key
+      "m#{MethodCache.version}|#{@key}"
     end
 
     def cached_at
