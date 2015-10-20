@@ -133,6 +133,10 @@ module MethodCache
     @disabled = old
   end
 
+  def self.statistics
+    @statistics ||= { cache_hits: 0, cache_misses: 0, cache_reads: 0, cache_writes: 0 }
+  end
+
   def self.disabled?
     @disabled
   end
