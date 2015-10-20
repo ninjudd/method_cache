@@ -203,26 +203,17 @@ module MethodCache
     end
 
     def write_to_cache(key, value)
-      begin
-        unless opts[:counter]
-          value = value.nil? ? NULL : value
-        end
-        if cache.kind_of?(Hash)
-          raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
-          raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
-          cache[key] = value
-        elsif opts[:counter]
-          cache.write(key, value.to_s, expiry(value))
-        else
-          cache.set(key, value, expiry(value))
-        end
-      rescue Dalli::DalliError => e
-        if e.message =~ /Value too large/
-          puts "WARNING #{self.class}: #{key} not written when trying to #write_to_cache. #{e.message}"
-          nil
-        else
-          raise e
-        end
+      unless opts[:counter]
+        value = value.nil? ? NULL : value
+      end
+      if cache.kind_of?(Hash)
+        raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
+        raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
+        cache[key] = value
+      elsif opts[:counter]
+        cache.write(key, value.to_s, expiry(value))
+      else
+        cache.set(key, value, expiry(value))
       end
     end
 
