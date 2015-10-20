@@ -5,13 +5,15 @@ require 'method_cache/proxy'
 module MethodCache
   def cache_method(method_name, opts = {})
     method_name = method_name.to_sym
+    (opts[:version] ||= self.to_s) if self.class == Module # maybe in other cases too?
     proxy = opts.kind_of?(Proxy) ? opts : Proxy.new(method_name, opts)
 
     if self.class == Class
-      return if instance_methods.include?(proxy.method_name_without_caching)
+      return if instance_methods.include?(proxy.method_name_without_caching.intern)
 
       if cached_instance_methods.empty?
-        include(HelperMethods)
+        include(InvalidationMethods)
+        extend(InvalidationMethods)
         extend(MethodAdded)
       end
 
@@ -39,10 +41,10 @@ module MethodCache
     method_name = method_name.to_sym
     proxy = opts.kind_of?(Proxy) ? opts : Proxy.new(method_name, opts)
 
-    return if methods.include?(proxy.method_name_without_caching)
+    return if methods.include?(proxy.method_name_without_caching.intern)
 
     if cached_class_methods.empty?
-      extend(HelperMethods)
+      extend(InvalidationMethods)
       extend(SingletonMethodAdded)
     end
 
@@ -74,11 +76,25 @@ module MethodCache
     @default_cache ||= LocalCache.new
   end
 
+  def self.default_cache=(new_cache)
+    @default_cache = new_cache
+  end
+
+  def get_ancestors
+    ancestors = if self.respond_to?(:ancestors)
+                  self.ancestors
+                else
+                  self.class.ancestors
+                end
+    ancestors + extended_modules
+  end
+
   def cached_instance_methods(method_name = nil)
     if method_name
       method_name = method_name.to_sym
-      ancestors.each do |klass|
+      get_ancestors.each do |klass|
         next unless klass.kind_of?(MethodCache)
+        # pp [:found, method_name, klass, klass.cached_instance_methods]
         proxy = klass.cached_instance_methods[method_name]
         return proxy if proxy
       end
@@ -91,7 +107,7 @@ module MethodCache
   def cached_class_methods(method_name = nil)
     if method_name
       method_name = method_name.to_sym
-      ancestors.each do |klass|
+      get_ancestors.each do |klass|
         next unless klass.kind_of?(MethodCache)
         proxy = klass.cached_class_methods[method_name]
         return proxy if proxy
@@ -121,7 +137,20 @@ module MethodCache
     @disabled
   end
 
-  module HelperMethods
+  def self.verbose(&block)
+    @verbose, old = true, @verbose
+    yield
+  ensure
+    @verbose = old
+  end
+
+  def self.verbose=(v)
+    @verbose = v
+  end
+
+  def self.verbose?; @verbose; end
+
+  module InvalidationMethods
     def invalidate_cached_method(method_name, *args, &block)
       cached_method(method_name, args).invalidate(&block)
     end
@@ -148,11 +177,19 @@ module MethodCache
 
   private
 
+    def extended_modules
+      (class << self; self end).included_modules
+    end
+
     def cached_method(method_name, args)
       if self.kind_of?(Class) or self.kind_of?(Module)
         proxy = cached_class_methods(method_name)
       else
-        proxy = self.class.send(:cached_instance_methods, method_name)
+        if self.class.respond_to?(:cached_instance_methods)
+          proxy = self.class.send(:cached_instance_methods, method_name)
+        else
+          proxy = cached_instance_methods(method_name)
+        end
       end
       raise "method '#{method_name}' not cached" unless proxy
       proxy.bind(self, args)

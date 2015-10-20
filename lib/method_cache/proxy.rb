@@ -9,6 +9,12 @@ module MethodCache
     attr_reader :method_name, :opts, :args, :target
     NULL = 'NULL'
 
+    def self.asciify(s)
+      s.gsub(/([^\x20-\x7F]+)/) do
+        '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+      end.tr(' ', '_')
+    end
+
     def initialize(method_name, opts)
       opts[:cache] ||= :counters if opts[:counter]
       @method_name = method_name
@@ -67,9 +73,12 @@ module MethodCache
       value = nil unless valid?(:load, value)
 
       if value.nil?
+        puts "cache miss: #{key}" if MethodCache.verbose?
         value = target.send(method_name_without_caching, *args)
         raise "non-integer value returned by counter method" if opts[:counter] and not value.kind_of?(Fixnum)
         write_to_cache(key, value) if valid?(:save, value)
+      else
+        puts "cache  hit: #{key}" if MethodCache.verbose?
       end
 
       if opts[:counter]
@@ -138,12 +147,13 @@ module MethodCache
     def key
       if @key.nil?
         arg_string = ([method_name, target] + args).collect do |arg|
-          object_key(arg)
+          self.class.asciify(object_key(arg))
         end.join('|')
         @key = [version, arg_string].compact.join('|')
         @key = Digest::SHA1.hexdigest(@key) if @key.length > 250
       end
-      "m#{MethodCache.version}|#{@key}"
+      puts "cache key: #{@key}" if MethodCache.verbose?
+      "m#{version}|#{@key}"
     end
 
     def cached_at
@@ -223,7 +233,7 @@ module MethodCache
     end
 
     def object_key(arg)
-      return "#{class_key(arg.class)}-#{arg.string_hash}" if arg.respond_to?(:string_hash)
+      return "#{class_key(arg.class)}-#{arg.method_cache_key}" if arg.respond_to?(:method_cache_key)
 
       case arg
       when NilClass      then 'nil'
@@ -240,6 +250,8 @@ module MethodCache
       when defined?(ActiveRecord::Base) && ActiveRecord::Base
         "#{class_key(arg.class)}-#{arg.id}"
       else
+        # such a tricky case. if you want all instances to share the same value then implement #method_cache_key
+        # otherwise this cache is instance specific
         if arg.respond_to?(:method_cache_key)
           arg.method_cache_key
         else
