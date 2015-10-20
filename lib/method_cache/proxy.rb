@@ -9,6 +9,12 @@ module MethodCache
     attr_reader :method_name, :opts, :args, :target
     NULL = 'NULL'
 
+    def self.asciify(s)
+      s.gsub(/([^\x20-\x7F]+)/) do
+        '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+      end.tr(' ', '_')
+    end
+
     def initialize(method_name, opts)
       opts[:cache] ||= :counters if opts[:counter]
       @method_name = method_name
@@ -67,9 +73,14 @@ module MethodCache
       value = nil unless valid?(:load, value)
 
       if value.nil?
+        MethodCache.statistics[:cache_misses] += 1
+        puts "cache miss: #{key}" if MethodCache.verbose?
         value = target.send(method_name_without_caching, *args)
         raise "non-integer value returned by counter method" if opts[:counter] and not value.kind_of?(Fixnum)
         write_to_cache(key, value) if valid?(:save, value)
+      else
+        MethodCache.statistics[:cache_hits] += 1
+        puts "cache  hit: #{key}" if MethodCache.verbose?
       end
 
       if opts[:counter]
@@ -138,12 +149,12 @@ module MethodCache
     def key
       if @key.nil?
         arg_string = ([method_name, target] + args).collect do |arg|
-          object_key(arg)
+          self.class.asciify(object_key(arg))
         end.join('|')
         @key = [version, arg_string].compact.join('|')
         @key = Digest::SHA1.hexdigest(@key) if @key.length > 250
       end
-      "m#{MethodCache.version}|#{@key}"
+      "m#{version}|#{@key}"
     end
 
     def cached_at
@@ -196,6 +207,7 @@ module MethodCache
       unless opts[:counter]
         value = value.nil? ? NULL : value
       end
+      MethodCache.statistics[:cache_writes] += 1
       if cache.kind_of?(Hash)
         raise 'expiry not permitted when cache is a Hash'        if opts[:expiry]
         raise 'counter cache not permitted when cache is a Hash' if opts[:counter]
@@ -209,6 +221,7 @@ module MethodCache
 
     def read_from_cache(key)
       return if MethodCache.disabled?
+      MethodCache.statistics[:cache_reads] += 1
       opts[:counter] ? cache.count(key) : cache[key]
     end
 
@@ -223,7 +236,9 @@ module MethodCache
     end
 
     def object_key(arg)
-      return "#{class_key(arg.class)}-#{arg.string_hash}" if arg.respond_to?(:string_hash)
+      # If you want all instances of a particular class to share the same values returned from instance methods,
+      # implement #method_cache_key on your class to return a string that is the same across instances.
+      return "#{class_key(arg.class)}-#{arg.method_cache_key}" if arg.respond_to?(:method_cache_key)
 
       case arg
       when NilClass      then 'nil'
@@ -240,12 +255,8 @@ module MethodCache
       when defined?(ActiveRecord::Base) && ActiveRecord::Base
         "#{class_key(arg.class)}-#{arg.id}"
       else
-        if arg.respond_to?(:method_cache_key)
-          arg.method_cache_key
-        else
-          hash = local? ? arg.hash : Marshal.dump(arg).hash
-          "#{class_key(arg.class)}-#{hash}"
-        end
+        hash = local? ? arg.hash : Marshal.dump(arg).hash
+        "#{class_key(arg.class)}-#{hash}"
       end
     end
 
