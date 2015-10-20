@@ -12,7 +12,7 @@ module MethodCache
       return if instance_methods.include?(proxy.method_name_without_caching.intern)
 
       if cached_instance_methods.empty?
-        include(HelperMethods)
+        include(InvalidationMethods)
         extend(InvalidationMethods)
         extend(MethodAdded)
       end
@@ -44,7 +44,7 @@ module MethodCache
     return if methods.include?(proxy.method_name_without_caching.intern)
 
     if cached_class_methods.empty?
-      extend(HelperMethods)
+      extend(InvalidationMethods)
       extend(SingletonMethodAdded)
     end
 
@@ -150,7 +150,7 @@ module MethodCache
 
   def self.verbose?; @verbose; end
 
-  module HelperMethods
+  module InvalidationMethods
     def invalidate_cached_method(method_name, *args, &block)
       cached_method(method_name, args).invalidate(&block)
     end
