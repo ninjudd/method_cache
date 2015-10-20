@@ -153,7 +153,7 @@ module MethodCache
         @key = Digest::SHA1.hexdigest(@key) if @key.length > 250
       end
       puts "cache key: #{@key}" if MethodCache.verbose?
-      "m#{MethodCache.version}|#{@key}"
+      "m#{version}|#{@key}"
     end
 
     def cached_at
