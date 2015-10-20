@@ -8,7 +8,7 @@ Rake::TestTask.new do |t|
 	t.test_files = FileList['test/**/*_test.rb']
 end
 
-RDoc::Task do |rdoc|
+RDoc::Task.new do |rdoc|
 	rdoc.rdoc_dir = 'rdoc'
 	rdoc.title = 'method_cache'
 	rdoc.options << '--line-numbers' << '--inline-source'
