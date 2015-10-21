@@ -247,6 +247,7 @@ module MethodCache
       when Numeric       then arg.to_s
       when Symbol        then ":#{arg}"
       when String        then "'#{arg}'"
+      when Time          then "Time@#{arg.to_r.to_s},#{arg.utc_offset},#{arg.zone}"
       when Class, Module then class_key(arg)
       when Hash
         '{' + arg.collect {|key, value| "#{object_key(key)}=#{object_key(value)}"}.sort.join(',') + '}'
