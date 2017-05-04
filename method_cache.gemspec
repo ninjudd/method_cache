@@ -15,7 +15,6 @@ Gem::Specification.new do |gem|
 
 	gem.add_development_dependency 'shoulda'
 	gem.add_development_dependency 'mocha'
-	gem.add_development_dependency 'rake'
 	gem.add_development_dependency 'dalli'
 	gem.add_development_dependency 'activesupport', '~> 2.3.9'
 	gem.add_development_dependency 'bundler', '~> 1.10'
