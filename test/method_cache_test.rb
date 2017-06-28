@@ -182,9 +182,9 @@ class TestMethodCache < Test::Unit::TestCase
     assert_equal 1, b1
     assert_equal 3, b2
 
-    assert b1 == a.baz(1)
-    assert b1 != b2
-    assert b2 == a.baz(2)
+    assert_equal b1, a.baz(1), 'Incorrect response from cached method call'
+    refute_equal b1, b2, 'Incorrect response from cached method call'
+    assert_equal b2, a.baz(2), 'Incorrect response from cached method call'
   end
 
   should 'cache class methods' do
